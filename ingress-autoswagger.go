@@ -1,15 +1,22 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/gobuffalo/packr"
-	"gopkg.in/robfig/cron.v3"
+	"github.com/robfig/cron/v3"
 	"log"
+	"encoding/json"
 	"net/http"
+	"embed"
 	"os"
 	"sort"
 	"strings"
 	"text/template"
+)
+var (
+	//go:embed templates
+	res embed.FS
+	pages = map[string]string{
+		"/": "templates/index.html",
+	}
 )
 
 //service to oas version
@@ -55,25 +62,34 @@ func main() {
 	log.Println("Server started on 3000 port!")
 	log.Println("Services:", services)
 	log.Println("Discovering versions:", versions, " with extension", apidocsExtensionEnv)
-	html, err := packr.NewBox("./templates").FindString("index.html")
-	if err != nil {
-		panic(err)
-	}
 
-	templateEngine, err := template.New("index").Parse(html)
-	if err != nil {
-		panic(err)
-	}
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		page, ok := pages[r.URL.Path]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		tpl, err := template.ParseFS(res, page)
+		if err != nil {
+			log.Printf("page %s not found in pages cache...", r.RequestURI)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		content, err := json.Marshal(cachedAvailableServices)
+		data := string(content)
+		if err := tpl.Execute(w, data); err != nil {
+			return
+		}
+	})
+
 
 	http.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
 		refreshCache(services)
 		w.WriteHeader(200)
 	})
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		resultJson, _ := json.Marshal(cachedAvailableServices)
-		_ = templateEngine.Execute(w, string(resultJson))
-	})
 	refreshCache(services)
 
 	c := cron.New()

@@ -1,6 +1,6 @@
 # Accept the Go version for the image to be set as a build argument.
 # Default to Go 1.11
-ARG GO_VERSION=1.13.15
+ARG GO_VERSION=1.18
 
 # First stage: build the executable.
 FROM golang:${GO_VERSION}-alpine AS builder
@@ -20,7 +20,7 @@ RUN apk add -U --no-cache ca-certificates git
 # Set the environment variables for the go command:
 # * CGO_ENABLED=0 to build a statically-linked executable
 # * GOFLAGS=-mod=vendor to force `go build` to look into the `/vendor` folder.
-ENV CGO_ENABLED=0 GOFLAGS=-mod=vendor
+ENV CGO_ENABLED=0
 
 # Set the working directory outside $GOPATH to enable the support for modules.
 WORKDIR /src
@@ -29,11 +29,10 @@ WORKDIR /src
 COPY ./ ./
 
 # Install dependencies
-RUN go get -u github.com/gobuffalo/packr/packr
-RUN go get -u gopkg.in/robfig/cron.v3
+RUN go get -u github.com/robfig/cron/v3
 
 # Build the executable to `/app`. Mark the build as statically linked.
-RUN packr build -installsuffix 'static' -o /app .
+RUN go build -o /app
 
 # Final stage: the running container.
 FROM scratch AS final

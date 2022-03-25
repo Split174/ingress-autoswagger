@@ -30,19 +30,19 @@ The application finds the right version of the specification for each service an
 
 ## Usage
 
-### With helm (stored inside LMRU, needs to be builded for external setups)
+### With helm (stored inside LMRU, needs to be built for external setups)
 
 ```bash
 helm repo add lmru https://art.lmru.tech/helm
 helm upgrade --install --namespace \
- --set services={plaster-calculator,product-binder} --set hostname=$hostname --set version=3.2 \
+ --set services={plaster-calculator,product-binder} --set hostname=$hostname --set version=4.0.0 \
  $namespace $release-name lmru/ingress-autoswagger
 ```
 
-### With docker (stored inside LMRU, needs to be builded for external setups)
+### With docker (stored inside LMRU, needs to be built for external setups)
 
 ```bash
-docker run -it -e SERVICES="[\"plaster-calculator\",\"product-binder\"]" -e VERSIONS="[\"v2\",\"v3\"]" docker-devops.art.lmru.tech/bricks/ingress-autoswagger:3.1
+docker run -it -e SERVICES="[\"plaster-calculator\",\"product-binder\"]" -e VERSIONS="[\"v2\",\"v3\"]" docker-devops.art.lmru.tech/bricks/ingress-autoswagger:4.0.0
 ```
 
 ### Without docker
@@ -56,8 +56,8 @@ After run you can open http://localhost:3000 in browser.
 ## Development & Build
 
 1. The tool written in simple Go language, so one that you need is to have installed Go.
-1. Install dependencies `go get -u github.com/gobuffalo/packr/packr`
-1. Build with packr (syntax the same with typical 'go build' command) `packr build .`
+1. Install dependencies `go get github.com/robfig/cron/v3`
+1. Build application `go build`
 
 ## Maintainers
 
