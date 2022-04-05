@@ -23,6 +23,8 @@ var (
 var cachedAvailableServices = make([]map[string]string, 0)
 var versions = make([]string, 0)
 var apidocsExtension = ""
+var apiSchemaUrlEnv = ""
+var apiSchemaUrlEnvExists = false
 
 func main() {
 	refreshCron, exists := os.LookupEnv("REFRESH_CRON")
@@ -44,7 +46,7 @@ func main() {
 	//set versions
 	versionsEnv, versionsEnvExists := os.LookupEnv("VERSIONS")
 	apidocsExtensionEnv, apidocsExtensionEnvExists := os.LookupEnv("APIDOCS_EXTENSION")
-	
+	apiSchemaUrlEnv, apiSchemaUrlEnvExists = os.LookupEnv("API_SCHEMA_URL")
 
 	if versionsEnvExists {
 		versions = mapValues(strings.Split(versionsEnv[1:len(versionsEnv)-1], ","), func(s string) string {
@@ -61,6 +63,9 @@ func main() {
 
 	log.Println("Server started on 3000 port!")
 	log.Println("Services:", services)
+	if (apiSchemaUrlEnvExists) {
+		log.Println("Schema URL:", apiSchemaUrlEnv)
+	}
 	log.Println("Discovering versions:", versions, " with extension", apidocsExtensionEnv)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -104,28 +109,48 @@ func main() {
 }
 
 func checkService(service string) {
-	passedVersion := ""
-	for _, ver := range versions {
-
-		url := "http://" + service + "/" + ver + "/api-docs" + apidocsExtension
+	log.Println(apiSchemaUrlEnv)
+	if (apiSchemaUrlEnv != "") {
+		url := "http://" + service + "/" + apiSchemaUrlEnv
 		log.Println("Trying url: " + url)
 		resp, err := http.Get(url)
 
-		if err == nil && strings.Contains(resp.Status, "200") {
-			passedVersion = ver
-		}
 		if resp != nil {
-			log.Println("for version " + ver + " status code is " + resp.Status)
+			log.Println("for schema " + apiSchemaUrlEnv + " status code is " + resp.Status)
 			resp.Body.Close()
 		}
-	}
 
-	log.Println("for " + service + " version is '" + passedVersion + "'")
-	if passedVersion != "" {
-		cachedAvailableServices = append(cachedAvailableServices, map[string]string{
-			"name": service,
-			"url":  "/" + service + "/" + passedVersion + "/api-docs" + apidocsExtension,
-		})
+		log.Println("for " + service + " schemaUrl is '" + apiSchemaUrlEnv + "'")
+		if err == nil && strings.Contains(resp.Status, "200") {
+			cachedAvailableServices = append(cachedAvailableServices, map[string]string{
+				"name": service,
+				"url":  "http://" + service + "/" + apiSchemaUrlEnv,
+			})
+		}
+	} else {
+		passedVersion := ""
+		for _, ver := range versions {
+
+			url := "http://" + service + "/" + ver + "/api-docs" + apidocsExtension
+			log.Println("Trying url: " + url)
+			resp, err := http.Get(url)
+
+			if err == nil && strings.Contains(resp.Status, "200") {
+				passedVersion = ver
+			}
+			if resp != nil {
+				log.Println("for version " + ver + " status code is " + resp.Status)
+				resp.Body.Close()
+			}
+		}
+
+		log.Println("for " + service + " version is '" + passedVersion + "'")
+		if passedVersion != "" {
+			cachedAvailableServices = append(cachedAvailableServices, map[string]string{
+				"name": service,
+				"url":  "/" + service + "/" + passedVersion + "/api-docs" + apidocsExtension,
+			})
+		}
 	}
 }
 
