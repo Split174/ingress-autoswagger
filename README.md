@@ -27,6 +27,7 @@ The application finds the right version of the specification for each service an
 * Can be `"yml"` for url: service/v3/api-docs.yml
 * Must be passed through `discoveringApidocsExtension: "yml"` in values.yaml 
 * **REFRESH_CRON** *`default: @every 1m`* schedule for check liveness of applications
+* **SWAGGER_JSON_URI** can be null, path to swagger schema 
 
 ## Usage
 
@@ -39,16 +40,28 @@ helm upgrade --install --namespace \
  $namespace $release-name lmru/ingress-autoswagger
 ```
 
+### Build docker
+
+```bash
+docker build -t ingress-autoswagger .
+```
+
 ### With docker (stored inside LMRU, needs to be built for external setups)
 
 ```bash
-docker run -it -e SERVICES="[\"plaster-calculator\",\"product-binder\"]" -e VERSIONS="[\"v2\",\"v3\"]" docker-devops.art.lmru.tech/bricks/ingress-autoswagger:4.0.0
+docker run -it -e SERVICES="[\"plaster-calculator\",\"product-binder\"]" -e VERSIONS="[\"v2\",\"v3\"]" ingress-autoswagger:latest
 ```
 
 ### Without docker
 
 ```bash
 SERVICES="[\"plaster-calculator\",\"product-binder\"]" VERSIONS="[\"v2\",\"v3\"]" go run ingress-autoswagger.go 
+```
+
+#### OR
+
+```bash
+SERVICES="[\"plaster-calculator\",\"product-binder\"]" SWAGGER_JSON_URI="[\"api-json\",\"v2/swagger.json\",\"v2/swagger.yaml\"]" go run ingress-autoswagger.go
 ```
 
 After run you can open http://localhost:3000 in browser.
