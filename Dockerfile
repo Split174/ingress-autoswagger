@@ -5,13 +5,16 @@ ARG GO_VERSION=1.18
 # First stage: build the executable.
 FROM golang:${GO_VERSION}-alpine AS builder
 
+ARG MAIN_REPO=https://dl-cdn.alpinelinux.org/alpine/v3.10/main/
+ARG COMMUNITY_REPO=https://dl-cdn.alpinelinux.org/alpine/v3.10/community/
+
 # Create the user and group files that will be used in the running container to
 # run the process as an unprivileged user.
 RUN mkdir /user && \
     echo 'nobody:x:65534:65534:nobody:/:' > /user/passwd && \
     echo 'nobody:x:65534:' > /user/group && \
-    echo 'https://art.lmru.tech/apk-remote-alpine/v3.10/main' > /etc/apk/repositories && \
-    echo 'https://art.lmru.tech/apk-remote-alpine/v3.10/community' >> /etc/apk/repositories
+    echo $MAIN_REPO > /etc/apk/repositories && \ 
+    echo $COMMUNITY_REPO >> /etc/apk/repositories 
 
 # Install the Certificate-Authority certificates for the app to be able to make
 # calls to HTTPS endpoints.

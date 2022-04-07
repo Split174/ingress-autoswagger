@@ -2,7 +2,8 @@ node('dockerhost') {
 
     env.DOCKER_IMAGE = 'docker-devops.art.lmru.tech/bricks/ingress-autoswagger'
     env.DOCKER_REGISTRY_CREDS = 'lm-sa-devops'
-
+    env.APK_MAIN_REPO = 'https://art.lmru.tech/apk-remote-alpine/v3.10/main'
+    env.APK_COMMUNITY_REPO = 'https://dl-cdn.alpinelinux.org/alpine/v3.10/community/'
     timestamps {
         ansiColor('xterm') {
             stage('Checkout') {
@@ -49,7 +50,11 @@ def image_build_and_push() {
     } else {
         TAG = BRANCH_NAME
     }
-    def image = docker.build("${env.DOCKER_IMAGE}:${TAG}", ".")
+    def image = docker.build("${env.DOCKER_IMAGE}:${TAG}", 
+                "--build-arg MAIN_REPO=${APK_MAIN_REPO}",
+                "--build-arg COMMUNITY_REPO=${APK_COMMUNITY_REPO}",
+                "."
+    )
     try {
         docker.withRegistry("https://$DOCKER_IMAGE", "$DOCKER_REGISTRY_CREDS") {
             image.push(TAG)
