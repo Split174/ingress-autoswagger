@@ -23,8 +23,7 @@ var (
 var cachedAvailableServices = make([]map[string]string, 0)
 var versions = make([]string, 0)
 var apidocsExtension = ""
-var apiSchemaUrlEnv = ""
-var apiSchemaUrlEnvExists = false
+var swaggerJsons = make([]string, 0)
 
 func main() {
 	refreshCron, exists := os.LookupEnv("REFRESH_CRON")
@@ -46,7 +45,7 @@ func main() {
 	//set versions
 	versionsEnv, versionsEnvExists := os.LookupEnv("VERSIONS")
 	apidocsExtensionEnv, apidocsExtensionEnvExists := os.LookupEnv("APIDOCS_EXTENSION")
-	apiSchemaUrlEnv, apiSchemaUrlEnvExists = os.LookupEnv("API_SCHEMA_URL")
+	swaggerJsonUriEnv, swaggerJsonUriEnvExists := os.LookupEnv("SWAGGER_JSON_URI")
 
 	if versionsEnvExists {
 		versions = mapValues(strings.Split(versionsEnv[1:len(versionsEnv)-1], ","), func(s string) string {
@@ -61,10 +60,16 @@ func main() {
 		apidocsExtension = "." + apidocsExtensionEnv
 	}
 
+	if (swaggerJsonUriEnvExists) {
+		swaggerJsons = mapValues(strings.Split(swaggerJsonUriEnv[1:len(swaggerJsonUriEnv)-1], ","), func(s string) string {
+			return s[1 : len(s)-1]
+		})
+	}
+
 	log.Println("Server started on 3000 port!")
 	log.Println("Services:", services)
-	if (apiSchemaUrlEnvExists) {
-		log.Println("Schema URL:", apiSchemaUrlEnv)
+	if (swaggerJsonUriEnvExists) {
+		log.Println("Swagger Json URI:", swaggerJsons)
 	}
 	log.Println("Discovering versions:", versions, " with extension", apidocsExtensionEnv)
 
@@ -109,23 +114,24 @@ func main() {
 }
 
 func checkService(service string) {
-	log.Println(apiSchemaUrlEnv)
-	if (apiSchemaUrlEnv != "") {
-		url := "http://" + service + "/" + apiSchemaUrlEnv
-		log.Println("Trying url: " + url)
-		resp, err := http.Get(url)
+	if (len(swaggerJsons) != 0) {
+		for _, swaggerJsonUri := range swaggerJsons {
+			url := "http://" + service + "/" + swaggerJsonUri
+			log.Println("Trying url: " + url)
+			resp, err := http.Get(url)
 
-		if resp != nil {
-			log.Println("for schema " + apiSchemaUrlEnv + " status code is " + resp.Status)
-			resp.Body.Close()
-		}
+			if resp != nil {
+				log.Println("for schema " + swaggerJsonUri + " status code is " + resp.Status)
+				resp.Body.Close()
+			}
 
-		log.Println("for " + service + " schemaUrl is '" + apiSchemaUrlEnv + "'")
-		if err == nil && strings.Contains(resp.Status, "200") {
-			cachedAvailableServices = append(cachedAvailableServices, map[string]string{
-				"name": service,
-				"url":  "http://" + service + "/" + apiSchemaUrlEnv,
-			})
+			log.Println("for " + service + " swagger json URI is '" + swaggerJsonUri + "'")
+			if err == nil && strings.Contains(resp.Status, "200") {
+				cachedAvailableServices = append(cachedAvailableServices, map[string]string{
+					"name": service,
+					"url":  "/" + service + "/" + swaggerJsonUri,
+				})
+			}
 		}
 	} else {
 		passedVersion := ""
