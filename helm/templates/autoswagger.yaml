@@ -36,6 +36,10 @@ spec:
             - name: VERSIONS
               value: {{ .Values.discoveringVersion | toJson | quote }}
             {{ end }}
+            {{ if .Values.swaggerJsonUri }}
+            - name: SWAGGER_JSON_URI
+              value: {{ .Values.swaggerJsonUri | toJson | quote }}
+            {{ end }}
             - name: APIDOCS_EXTENSION
               value: {{ .Values.discoveringApidocsExtension }}
           livenessProbe:
