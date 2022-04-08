@@ -45,7 +45,7 @@ func main() {
 	//set versions
 	versionsEnv, versionsEnvExists := os.LookupEnv("VERSIONS")
 	apidocsExtensionEnv, apidocsExtensionEnvExists := os.LookupEnv("APIDOCS_EXTENSION")
-	swaggerJsonUriEnv, swaggerJsonUriEnvExists := os.LookupEnv("SWAGGER_JSON_URI")
+	openApiPathsEnv, openApiPathsEnvExists := os.LookupEnv("OPENAPI_PATHS")
 
 	if versionsEnvExists {
 		versions = mapValues(strings.Split(versionsEnv[1:len(versionsEnv)-1], ","), func(s string) string {
@@ -60,16 +60,21 @@ func main() {
 		apidocsExtension = "." + apidocsExtensionEnv
 	}
 
-	if (swaggerJsonUriEnvExists) {
-		swaggerJsons = mapValues(strings.Split(swaggerJsonUriEnv[1:len(swaggerJsonUriEnv)-1], ","), func(s string) string {
+	if !openApiPathsEnvExists {
+		log.Println("WARNING: The VERSION and APIDOCS _EXTENSION environment variables are deprecated, ", 
+			"it is recommended to use the OPENAPI_PATHS variable instead")
+	}
+
+	if openApiPathsEnvExists {
+		swaggerJsons = mapValues(strings.Split(openApiPathsEnv[1:len(openApiPathsEnv)-1], ","), func(s string) string {
 			return s[1 : len(s)-1]
 		})
 	}
 
 	log.Println("Server started on 3000 port!")
 	log.Println("Services:", services)
-	if (swaggerJsonUriEnvExists) {
-		log.Println("Swagger Json URI:", swaggerJsons)
+	if openApiPathsEnvExists {
+		log.Println("OpenApi Paths URI:", swaggerJsons)
 	}
 	log.Println("Discovering versions:", versions, " with extension", apidocsExtensionEnv)
 
