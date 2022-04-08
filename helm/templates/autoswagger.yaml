@@ -37,8 +37,8 @@ spec:
               value: {{ .Values.discoveringVersion | toJson | quote }}
             {{ end }}
             {{ if .Values.swaggerJsonUri }}
-            - name: SWAGGER_JSON_URI
-              value: {{ .Values.swaggerJsonUri | toJson | quote }}
+            - name: OPENAPI_PATHS
+              value: {{ .Values.openApiPaths | toJson | quote }}
             {{ end }}
             - name: APIDOCS_EXTENSION
               value: {{ .Values.discoveringApidocsExtension }}
