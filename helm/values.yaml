@@ -1,5 +1,5 @@
 enabled: true
-version: "4.0.1"
+version: "4.1.0"
 imageName: "docker.art.lmru.tech/bricks/ingress-autoswagger"
 refreshCron: "@every 1m"
 ingressPath: "/"

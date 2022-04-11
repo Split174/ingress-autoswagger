@@ -36,7 +36,7 @@ spec:
             - name: VERSIONS
               value: {{ .Values.discoveringVersion | toJson | quote }}
             {{ end }}
-            {{ if .Values.swaggerJsonUri }}
+            {{ if .Values.openApiPaths }}
             - name: OPENAPI_PATHS
               value: {{ .Values.openApiPaths | toJson | quote }}
             {{ end }}
