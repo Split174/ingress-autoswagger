@@ -60,22 +60,18 @@ func main() {
 		apidocsExtension = "." + apidocsExtensionEnv
 	}
 
-	if !openApiPathsEnvExists {
-		log.Println("WARNING: The VERSION and APIDOCS _EXTENSION environment variables are deprecated, ", 
-			"it is recommended to use the OPENAPI_PATHS variable instead")
-	}
-
 	if openApiPathsEnvExists {
 		swaggerJsons = mapValues(strings.Split(openApiPathsEnv[1:len(openApiPathsEnv)-1], ","), func(s string) string {
 			return s[1 : len(s)-1]
 		})
+		log.Println("OpenApi Paths URI:", swaggerJsons)
+	} else {
+		log.Println("WARNING: The VERSION and APIDOCS _EXTENSION environment variables are deprecated, ", 
+			"it is recommended to use the OPENAPI_PATHS variable instead")
 	}
 
 	log.Println("Server started on 3000 port!")
 	log.Println("Services:", services)
-	if openApiPathsEnvExists {
-		log.Println("OpenApi Paths URI:", swaggerJsons)
-	}
 	log.Println("Discovering versions:", versions, " with extension", apidocsExtensionEnv)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +94,6 @@ func main() {
 			return
 		}
 	})
-
 
 	http.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
 		refreshCache(services)
