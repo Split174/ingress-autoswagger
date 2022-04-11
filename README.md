@@ -7,7 +7,7 @@ Start Ingress Autoswagger in the root `/` path, specify names of services and yo
 
 ## How it works
 Assume, you have three microservices `cart`, `delivery`, and `payment` deployed on the same host.
-To make this work, each application should expose [Open API JSON](https://swagger.io/specification/) on `/{version}/api-docs` or a link specified in the OPENAPI_PATHS environment variable. For example: 
+To make this work, each application should expose [Open API JSON](https://swagger.io/specification/) on `/{version}/api-docs` or a link specified in the OPENAPI_PATHS environment variable.
 For example:
 
 * `/cart/v3/api-docs`
