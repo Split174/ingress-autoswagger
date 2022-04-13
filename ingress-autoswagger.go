@@ -23,7 +23,6 @@ var (
 var cachedAvailableServices = make([]map[string]string, 0)
 var versions = make([]string, 0)
 var apidocsExtension = ""
-var swaggerJsons = make([]string, 0)
 
 func main() {
 	refreshCron, exists := os.LookupEnv("REFRESH_CRON")
@@ -32,20 +31,23 @@ func main() {
 	}
 
 	servicesEnv := os.Getenv("SERVICES")
-	if servicesEnv == "" {
-		log.Println("Environment variable \"SERVICES\" is empty")
+	openApiUrlsEnv, openApiUrlsEnvExists := os.LookupEnv("OPENAPI_URLS")
+	if (servicesEnv == "" && openApiUrlsEnv == "") {
+		log.Println("Environment variable \"SERVICES\" and OPENAPI_URLS is empty")
 		os.Exit(2)
 	}
+
 	services := make([]string, 0)
-	services = mapValues(strings.Split(servicesEnv[1:len(servicesEnv)-1], ","), func(s string) string {
-		return s[1 : len(s)-1]
-	})
-	sort.Strings(services)
+	if (servicesEnv != "") {
+		services = mapValues(strings.Split(servicesEnv[1:len(servicesEnv)-1], ","), func(s string) string {
+			return s[1 : len(s)-1]
+		})
+		sort.Strings(services)
+	}
 
 	//set versions
 	versionsEnv, versionsEnvExists := os.LookupEnv("VERSIONS")
 	apidocsExtensionEnv, apidocsExtensionEnvExists := os.LookupEnv("APIDOCS_EXTENSION")
-	openApiPathsEnv, openApiPathsEnvExists := os.LookupEnv("OPENAPI_PATHS")
 
 	if versionsEnvExists {
 		versions = mapValues(strings.Split(versionsEnv[1:len(versionsEnv)-1], ","), func(s string) string {
@@ -60,14 +62,12 @@ func main() {
 		apidocsExtension = "." + apidocsExtensionEnv
 	}
 
-	if openApiPathsEnvExists {
-		swaggerJsons = mapValues(strings.Split(openApiPathsEnv[1:len(openApiPathsEnv)-1], ","), func(s string) string {
+	var openApiUrls = make([]string, 0)
+	if openApiUrlsEnvExists {
+		openApiUrls = mapValues(strings.Split(openApiUrlsEnv[1:len(openApiUrlsEnv)-1], ","), func(s string) string {
 			return s[1 : len(s)-1]
 		})
-		log.Println("OpenApi Paths URI:", swaggerJsons)
-	} else {
-		log.Println("WARNING: The VERSION and APIDOCS _EXTENSION environment variables are deprecated, ", 
-			"it is recommended to use the OPENAPI_PATHS variable instead")
+		log.Println("OpenApi Paths URI:", openApiUrls)
 	}
 
 	log.Println("Server started on 3000 port!")
@@ -90,22 +90,35 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		content, err := json.Marshal(cachedAvailableServices)
 		data := string(content)
+		log.Println("data", data)
 		if err := tpl.Execute(w, data); err != nil {
 			return
 		}
 	})
 
 	http.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
-		refreshCache(services)
+		if openApiUrlsEnvExists {
+			refreshCacheOpenApiUrls(openApiUrls)
+		} else {
+			refreshCache(services)
+		}
 		w.WriteHeader(200)
 	})
 
-	refreshCache(services)
+	if openApiUrlsEnvExists {
+		refreshCacheOpenApiUrls(openApiUrls)
+	} else {
+		refreshCache(services)
+	}
 
 	c := cron.New()
 	c.AddFunc(refreshCron, func() {
 		log.Println("Cron init")
-		refreshCache(services)
+		if openApiUrlsEnvExists {
+			refreshCacheOpenApiUrls(openApiUrls)
+		} else {
+			refreshCache(services)
+		}
 		log.Println("Cron has been finished")
 	})
 	c.Start()
@@ -114,49 +127,28 @@ func main() {
 }
 
 func checkService(service string) {
-	if (len(swaggerJsons) != 0) {
-		for _, swaggerJsonUri := range swaggerJsons {
-			url := "http://" + service + "/" + swaggerJsonUri
-			log.Println("Trying url: " + url)
-			resp, err := http.Get(url)
+	passedVersion := ""
+	for _, ver := range versions {
 
-			if resp != nil {
-				log.Println("for schema " + swaggerJsonUri + " status code is " + resp.Status)
-				resp.Body.Close()
-			}
+		url := "http://" + service + "/" + ver + "/api-docs" + apidocsExtension
+		log.Println("Trying url: " + url)
+		resp, err := http.Get(url)
 
-			log.Println("for " + service + " swagger json URI is '" + swaggerJsonUri + "'")
-			if err == nil && strings.Contains(resp.Status, "200") {
-				cachedAvailableServices = append(cachedAvailableServices, map[string]string{
-					"name": service,
-					"url":  "/" + service + "/" + swaggerJsonUri,
-				})
-			}
+		if err == nil && strings.Contains(resp.Status, "200") {
+			passedVersion = ver
 		}
-	} else {
-		passedVersion := ""
-		for _, ver := range versions {
-
-			url := "http://" + service + "/" + ver + "/api-docs" + apidocsExtension
-			log.Println("Trying url: " + url)
-			resp, err := http.Get(url)
-
-			if err == nil && strings.Contains(resp.Status, "200") {
-				passedVersion = ver
-			}
-			if resp != nil {
-				log.Println("for version " + ver + " status code is " + resp.Status)
-				resp.Body.Close()
-			}
+		if resp != nil {
+			log.Println("for version " + ver + " status code is " + resp.Status)
+			resp.Body.Close()
 		}
+	}
 
-		log.Println("for " + service + " version is '" + passedVersion + "'")
-		if passedVersion != "" {
-			cachedAvailableServices = append(cachedAvailableServices, map[string]string{
-				"name": service,
-				"url":  "/" + service + "/" + passedVersion + "/api-docs" + apidocsExtension,
-			})
-		}
+	log.Println("for " + service + " version is '" + passedVersion + "'")
+	if passedVersion != "" {
+		cachedAvailableServices = append(cachedAvailableServices, map[string]string{
+			"name": service,
+			"url":  "/" + service + "/" + passedVersion + "/api-docs" + apidocsExtension,
+		})
 	}
 }
 
@@ -170,9 +162,43 @@ func mapValues(vs []string, f func(string) string) []string {
 
 func refreshCache(services []string) {
 	log.Println("Refresh start")
+	log.Println("WARNING: The SERVICES, VERSION and APIDOCS_EXTENSION environment variables are deprecated, ", 
+			"it is recommended to use the OPENAPI_URLS variable instead")
 	cachedAvailableServices = cachedAvailableServices[:0]
 	for _, service := range services {
 		checkService(service)
+	}
+	log.Println("Refresh finish")
+}
+
+func refreshCacheOpenApiUrls(openApiUrls []string) {
+	log.Println("Refresh start")
+	cachedAvailableServices = cachedAvailableServices[:0]
+	for _, openApiUrl := range openApiUrls {
+		log.Println("Trying url: " + openApiUrl)
+		resp, err := http.Get(openApiUrl)
+
+		if resp != nil {
+			log.Println("schema for url " + openApiUrl + " status code is " + resp.Status)
+			resp.Body.Close()
+		}
+
+		var domain = strings.Replace(openApiUrl, "https://", "", -1)
+		domain = strings.Replace(domain, "http://", "", -1)
+		
+		var chacheUrl = ""
+		if strings.Contains(domain, ".") {
+			chacheUrl = openApiUrl
+		} else {
+			chacheUrl = "/" + domain
+		}
+
+		if err == nil && strings.Contains(resp.Status, "200") {
+			cachedAvailableServices = append(cachedAvailableServices, map[string]string{
+				"name": domain,
+				"url": chacheUrl,
+			})
+		}
 	}
 	log.Println("Refresh finish")
 }
