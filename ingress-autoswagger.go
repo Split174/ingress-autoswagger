@@ -90,7 +90,6 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		content, err := json.Marshal(cachedAvailableServices)
 		data := string(content)
-		log.Println("data", data)
 		if err := tpl.Execute(w, data); err != nil {
 			return
 		}
