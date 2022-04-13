@@ -7,7 +7,7 @@ Start Ingress Autoswagger in the root `/` path, specify names of services and yo
 
 ## How it works
 Assume, you have three microservices `cart`, `delivery`, and `payment` deployed on the same host.
-To make this work, each application should expose [Open API JSON](https://swagger.io/specification/) on `/{version}/api-docs` or a link specified in the OPENAPI_PATHS environment variable.
+To make this work, each application should expose [Open API JSON](https://swagger.io/specification/) on `/{version}/api-docs` or a link specified in the OPENAPI_URLS environment variable.
 For example:
 
 * `/cart/v3/api-docs`
@@ -29,7 +29,7 @@ The application finds the right version of the specification for each service an
 * Can be `"yml"` for url: service/v3/api-docs.yml
 * Must be passed through `discoveringApidocsExtension: "yml"` in values.yaml 
 * **REFRESH_CRON** *`default: @every 1m`* schedule for check liveness of applications
-* **OPENAPI_PATHS** *`Optional, default: null`* array includes all possible paths to the [Open API JSON](https://swagger.io/specification/) specifications. 
+* **OPENAPI_URLS** *`Optional, default: null`* array includes all possible full paths to the [Open API JSON](https://swagger.io/specification/) specifications. 
 This value will rewrite standard URL pattern /{version}/api-docs and will ignore VERSIONS and APIDOCS_EXTENSION values. 
 
 ## Usage
@@ -58,13 +58,13 @@ docker run -it -e SERVICES="[\"plaster-calculator\",\"product-binder\"]" -e VERS
 ### Without docker
 
 ```bash
-SERVICES="[\"plaster-calculator\",\"product-binder\"]" VERSIONS="[\"v2\",\"v3\"]" go run ingress-autoswagger.go 
+OPENAPI_URLS="[\"http://plaster-calculator/v2/swagger.json\",\"https://product-binder/api-json\"]" go run ingress-autoswagger.go
 ```
 
-#### OR
+#### OR (deprecated)
 
 ```bash
-SERVICES="[\"plaster-calculator\",\"product-binder\"]" OPENAPI_PATHS="[\"api-json\",\"v2/swagger.json\",\"v2/swagger.yaml\"]" go run ingress-autoswagger.go
+SERVICES="[\"plaster-calculator\",\"product-binder\"]" VERSIONS="[\"v2\",\"v3\"]" go run ingress-autoswagger.go 
 ```
 
 After run you can open http://localhost:3000 in browser.
