@@ -1,3 +1,4 @@
 swagger
 .idea
 *.iml
+ingress-autoswagger

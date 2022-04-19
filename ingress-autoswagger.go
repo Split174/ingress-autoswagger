@@ -32,7 +32,7 @@ func main() {
 
 	servicesEnv := os.Getenv("SERVICES")
 	if servicesEnv == "" {
-		log.Println("Environment variable \"SERVICES\" is empty")
+		log.Println("Environment variable \"SERVICES\" is empty. Check readme for details.")
 		os.Exit(2)
 	}
 	services := make([]string, 0)
